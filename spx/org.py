@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import hmac
 import html
 import os
 import secrets
@@ -181,6 +182,7 @@ class Handler(BaseHTTPRequestHandler):
         self.send_response(code)
         self.send_header("Content-Type", "text/html; charset=utf-8")
         self.send_header("Content-Length", str(len(data)))
+        self.send_header("Cache-Control", "no-store")
         self.send_header("Referrer-Policy", "no-referrer")
         self.send_header("X-Frame-Options", "DENY")
         for k, v in (headers or {}).items():
@@ -191,6 +193,16 @@ class Handler(BaseHTTPRequestHandler):
     def _deny(self) -> None:
         self._send(401, _page("locked", "<p>Token required. Open the console URL "
                                       "printed at startup.</p>"))
+
+    def _csrf(self) -> str:
+        """Synchronizer token, derived from the session secret.
+
+        The page carries it; another origin cannot read the page, so it cannot
+        forge a POST. Derived rather than stored, so a restart invalidates it
+        along with the cookie.
+        """
+        return hmac.new(self.server.token.encode(), b"spx-csrf",
+                        hashlib.sha256).hexdigest()
 
     # -- routing ----------------------------------------------------------
     def do_GET(self) -> None:
@@ -231,8 +243,9 @@ class Handler(BaseHTTPRequestHandler):
         if length > 8192:
             return self._send(413, _page("too large", "<p>Form too large.</p>"))
         form = parse_qs(self.rfile.read(length).decode())
-        if not secrets.compare_digest(form.get("token", [""])[0], self.server.token):
-            return self._deny()
+        got = form.get("csrf", [""])[0]
+        if not hmac.compare_digest(got, self._csrf()):
+            return self._send(403, _page("rejected", "<p>Missing or bad CSRF token.</p>"))
 
         org = self._open()
         path = urlparse(self.path).path
@@ -292,7 +305,7 @@ class Handler(BaseHTTPRequestHandler):
             if banned:
                 action = (
                     f"<form method=post action=/reinstate>"
-                    f"<input type=hidden name=token value='{html.escape(self.server.token)}'>"
+                    f"<input type=hidden name=csrf value='{self._csrf()}'>"
                     f"<input type=hidden name=member_id value='{html.escape(m['member_id'])}'>"
                     f"<input type=text name=note placeholder='why' size=12 required> "
                     f"<button>reinstate</button></form>")
@@ -315,7 +328,7 @@ class Handler(BaseHTTPRequestHandler):
             if d["outcome"] == "CONFIRMED":
                 action = (
                     f"<form method=post action=/cancel_date>"
-                    f"<input type=hidden name=token value='{html.escape(self.server.token)}'>"
+                    f"<input type=hidden name=csrf value='{self._csrf()}'>"
                     f"<input type=hidden name=date_id value='{html.escape(d['date_id'])}'>"
                     f"<input type=text name=note placeholder='why' size=12 required> "
                     f"<button>cancel</button></form>")
@@ -345,8 +358,15 @@ class Handler(BaseHTTPRequestHandler):
         sys.stderr.write("org: " + (fmt % args) + "\n")
 
 
+LOOPBACK = {"127.0.0.1", "localhost", "::1"}
+
+
 def make_server(db_path: str, token: str, host: str = "127.0.0.1",
-                port: int = 8787) -> ThreadingHTTPServer:
+                port: int = 8787, allow_remote: bool = False) -> ThreadingHTTPServer:
+    if host not in LOOPBACK and not allow_remote:
+        raise ValueError(
+            "refusing to bind a non-loopback address; pass --allow-remote"
+            " if you have put this behind an authenticated tunnel")
     # Create the schema once; handlers open their own short-lived connections.
     Protocol.open(db_path).close()
     server = ThreadingHTTPServer((host, port), Handler)
@@ -360,10 +380,13 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--db", default="spx.db")
     ap.add_argument("--host", default="127.0.0.1")
     ap.add_argument("--port", type=int, default=8787)
+    ap.add_argument("--allow-remote", action="store_true",
+                    help="permit a non-loopback bind (put it behind a tunnel)")
     args = ap.parse_args(argv)
 
     token = os.environ.get("SPX_ORG_TOKEN") or secrets.token_urlsafe(24)
-    server = make_server(args.db, token, args.host, args.port)
+    server = make_server(args.db, token, args.host, args.port,
+                         allow_remote=args.allow_remote)
     host, port = server.server_address[:2]
     print(f"SPX organizer  http://{host}:{port}/?token={token}")
     print("token is shown once; set SPX_ORG_TOKEN to reuse it")

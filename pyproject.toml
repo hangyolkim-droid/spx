@@ -1,6 +1,6 @@
 [project]
 name = "spx"
-version = "0.2.0"
+version = "0.2.1"
 description = "SPX — a no-chat, meeting-first dating protocol"
 requires-python = ">=3.10"
 dependencies = []

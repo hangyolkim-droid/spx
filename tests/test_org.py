@@ -1,10 +1,13 @@
 """Organizer actions and the localhost console."""
 
+import hashlib
+import hmac
 import http.cookiejar
 import tempfile
 import threading
 import unittest
 import urllib.error
+import urllib.parse
 import urllib.request
 
 from spx.domain import Protocol, ProtocolError
@@ -105,27 +108,70 @@ class TestCancelDate(Base):
 
 
 class TestConsole(Base):
-    def test_requires_token(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            server = make_server(f"{tmp}/spx.db", "secret-token", port=0)
-            threading.Thread(target=server.serve_forever, daemon=True).start()
-            try:
-                port = server.server_address[1]
-                with self.assertRaises(urllib.error.HTTPError) as ctx:
-                    urllib.request.urlopen(f"http://127.0.0.1:{port}/", timeout=5)
-                self.assertEqual(ctx.exception.code, 401)
+    TOK = "secret-token"
 
-                jar = http.cookiejar.CookieJar()
-                opener = urllib.request.build_opener(
-                    urllib.request.HTTPCookieProcessor(jar))
-                body = opener.open(
-                    f"http://127.0.0.1:{port}/?token=secret-token", timeout=5
-                ).read().decode()
-                self.assertIn("SPX organizer", body)
-                self.assertIn("feasible pairs", body)
-            finally:
-                server.shutdown()
-                server.server_close()
+    def _serve(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        server = make_server(f"{tmp.name}/spx.db", self.TOK, port=0)
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        self.addCleanup(server.shutdown)
+        self.addCleanup(server.server_close)
+        return server.server_address[1]
+
+    def _opener(self):
+        jar = http.cookiejar.CookieJar()
+        return urllib.request.build_opener(
+            urllib.request.HTTPCookieProcessor(jar))
+
+    def _login(self, port):
+        opener = self._opener()
+        opener.open(f"http://127.0.0.1:{port}/?token={self.TOK}", timeout=5).read()
+        return opener
+
+    def test_requires_token(self):
+        port = self._serve()
+        with self.assertRaises(urllib.error.HTTPError) as ctx:
+            urllib.request.urlopen(f"http://127.0.0.1:{port}/", timeout=5)
+        self.assertEqual(ctx.exception.code, 401)
+
+    def test_dashboard_renders_with_cookie(self):
+        port = self._serve()
+        body = self._login(port).open(
+            f"http://127.0.0.1:{port}/", timeout=5).read().decode()
+        self.assertIn("SPX organizer", body)
+        self.assertIn("feasible pairs", body)
+
+    def _post(self, opener, port, path, fields):
+        data = urllib.parse.urlencode(fields).encode()
+        req = urllib.request.Request(
+            f"http://127.0.0.1:{port}{path}", data=data, method="POST")
+        return opener.open(req, timeout=5)
+
+    def test_post_without_csrf_is_rejected(self):
+        port = self._serve()
+        opener = self._login(port)
+        with self.assertRaises(urllib.error.HTTPError) as ctx:
+            self._post(opener, port, "/cancel_date",
+                       {"date_id": "nope", "note": "x"})
+        self.assertEqual(ctx.exception.code, 403)
+
+    def test_post_with_csrf_reaches_the_action(self):
+        port = self._serve()
+        opener = self._login(port)
+        csrf = hmac.new(self.TOK.encode(), b"spx-csrf",
+                        hashlib.sha256).hexdigest()
+        # Accepted past the CSRF gate, then rejected by the domain for an
+        # unknown date: 400, not 403.
+        with self.assertRaises(urllib.error.HTTPError) as ctx:
+            self._post(opener, port, "/cancel_date",
+                       {"date_id": "nope", "note": "x", "csrf": csrf})
+        self.assertEqual(ctx.exception.code, 400)
+
+    def test_refuses_non_loopback_without_flag(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            with self.assertRaises(ValueError):
+                make_server(f"{tmp}/spx.db", self.TOK, host="0.0.0.0", port=0)
 
 
 if __name__ == "__main__":
