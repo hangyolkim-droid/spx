@@ -93,7 +93,7 @@ CREATE TABLE IF NOT EXISTS dates (
     window_minutes INTEGER NOT NULL DEFAULT 45,
     outcome        TEXT NOT NULL DEFAULT 'NEGOTIATING'
                    CHECK (outcome IN ('NEGOTIATING','CONFIRMED','LAPSED')),
-    lapse_cause    TEXT CHECK (lapse_cause IN ('NO_COMMON_VENUE','ROUND_TIMEOUT')),
+    lapse_cause    TEXT CHECK (lapse_cause IN ('NO_COMMON_VENUE','ROUND_TIMEOUT','ORGANIZER_CANCELLED')),
     checkin_a      INTEGER NOT NULL DEFAULT 0 CHECK (checkin_a IN (0,1)),
     checkin_b      INTEGER NOT NULL DEFAULT 0 CHECK (checkin_b IN (0,1)),
     meeting_status TEXT CHECK (meeting_status IN
@@ -124,7 +124,7 @@ CREATE TABLE IF NOT EXISTS date_pledges (
     amount_cents INTEGER NOT NULL CHECK (amount_cents BETWEEN 500 AND 20000),
     currency     TEXT NOT NULL DEFAULT 'USD' CHECK (length(currency) = 3),
     status       TEXT NOT NULL DEFAULT 'PLEDGED'
-                 CHECK (status IN ('PLEDGED','HONORED','BROKEN')),
+                 CHECK (status IN ('PLEDGED','HONORED','BROKEN','VOID')),
     created_at   TEXT NOT NULL,
     resolved_at  TEXT,
     UNIQUE (date_id, side),                        -- one pledge per side

@@ -133,9 +133,43 @@ pid = p.serve_pair(a, b)
 ```
 schema/schema.sql   tables, constraints, the venue-slot unique index
 spx/domain.py       feasibility, handshake, venue rounds, check-in, reveal, purge
+spx/org.py          organizer console (stdlib HTTP, localhost, token-gated)
 spx/demo.py         end-to-end walkthrough
 tests/              20 invariant tests, stdlib unittest
 ```
+
+## Organizer console
+
+The protocol has no admin UI by design — but a district needs a human who can
+see the pool and reverse a bad call. That is this:
+
+```sh
+SPX_ORG_TOKEN="$(python3 -c 'import secrets;print(secrets.token_urlsafe(24))')" \
+  python3 -m spx.org --db spx.db --port 8787
+```
+
+Open the printed URL once; the token is stored in an `HttpOnly`, `SameSite=Strict`
+cookie. Binds `127.0.0.1` unless `--host` is passed explicitly.
+
+| page | what it shows |
+|---|---|
+| `/` | pool by status, open proposals, confirmed dates, active bans, f / p rates |
+| `/members` | every member, with a **reinstate** action for banned ones |
+| `/dates` | confirmed and past dates, with a **cancel** action |
+| `/audit` | last 100 actions, including the organizer's note |
+
+Two rules the console enforces on itself:
+
+- **Reinstate requires a note.** It also deletes the phone-keyed ban marker, or
+  the member would stay blocked at signup despite an active status.
+- **Cancel is not a punishment.** A cancelled date voids open pledges
+  (`VOID`), never marks them `BROKEN` — nobody is banned because a venue
+  flooded.
+
+Every action writes an `audit` row naming the organizer action and the note.
+There is no free-text profile data anywhere, so nothing private can leak
+through a page. The console uses a short-lived SQLite connection per request,
+because `sqlite3` objects cannot cross threads and the server is threaded.
 
 ## Data handling
 
