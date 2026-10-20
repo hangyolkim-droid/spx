@@ -180,6 +180,34 @@ an expiry — no link to who, where, or who they met. The marker exists so a
 prior ban is not invisible on rejoin; it is disclosed on the
 graduation screen in the host's own words.
 
+## Before you recruit
+
+Run the simulator first. It applies the same five flags as `spx.domain` in
+memory, so a 400-person district evaluates 80k pairs instantly:
+
+```sh
+python3 -m tools.district_sim --members 120 --age-half 6
+python3 -m tools.district_sim --sweep
+```
+
+It reports `f`, feasible partners per member, the meeting ceiling, and a
+leave-one-out uplift per flag. Three findings from the default model:
+
+- **`f` is ~0.09 at every size.** The filters take a roughly fixed bite, so
+  density is the only lever — and it is quadratic. Partners per member scale
+  linearly: 3.6 at N=40, 10.5 at N=120, 36.9 at N=400. Below ~80 the pool is
+  exhausted in one cycle.
+- **Three proposals per member per month caps the district at 1.5 meetings
+  per member, even at 100% acceptance.** One meeting per member per month needs
+  eight proposals at p=0.5; two needs sixteen. The cap, not the matching, is
+  what limits throughput.
+- **Per-member meetings do not grow with N at fixed p.** What density buys is a
+  higher acceptance rate. That is the number the pilot exists to measure, and
+  the simulator deliberately does not invent it.
+
+All output is synthetic. The tool models capacity; it does not predict whether
+people accept a blind meeting.
+
 ## The hard part is not in this repo
 
 Code is the easy 20% of this product. The other 80% is:
