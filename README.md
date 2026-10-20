@@ -41,8 +41,9 @@ that is the one place where a race is both likely and socially expensive.
   message" feature deletes the product.
 - **No booking integration.** Two people are told a named public venue and a
   time. There is no table to hold, no capacity contract, and no venue API.
-- **No SOS button.** A button is a promise of intervention. Publishing one
-  without 24/7 human response is worse than not having it.
+- **No safety service.** SPX does not monitor dates, answer alarms, or
+  intervene. If you are in danger, call 911. The only safety design here is
+  structural: a public, staffed venue, a fixed window, and a check-in.
 
 ## Money
 
@@ -176,7 +177,7 @@ because `sqlite3` objects cannot cross threads and the server is threaded.
 Purge is a single transaction: profile, specs, availability, pairs, proposals,
 dates, and round rows all go. What remains is a salted hash, a marker kind, and
 an expiry — no link to who, where, or who they met. The marker exists so a
-prior safety incident is not invisible on rejoin; it is disclosed on the
+prior ban is not invisible on rejoin; it is disclosed on the
 graduation screen in the host's own words.
 
 ## The hard part is not in this repo
@@ -186,9 +187,10 @@ Code is the easy 20% of this product. The other 80% is:
 1. **Liquidity.** A protocol with no members matches nobody. One district, one
    organizer, forty verified people, and a fixed weekly slot beats a global app
    with zero density.
-2. **Safety operations.** A human who answers the phone, a venue list that is
-   walked and re-checked, and a documented escalation path. None of it is code.
-3. **Governance.** Who admits members, who reviews an incident, who can see the
+2. **Trust operations.** A venue list that is walked and re-checked, an
+   organizer who knows the district, and a written answer for what happens when
+   someone is banned by mistake. None of it is code.
+3. **Governance.** Who admits members, who decides an appeal, who can see the
    marker, and how that power is removed. Non-profit does not mean unaccountable.
 
 If a fork ships only this repository and no answer to those three, it is a
@@ -199,4 +201,4 @@ schema, not a service.
 **AGPL-3.0.** For a network service this is the license that does what a
 non-profit edition needs: anyone who hosts a modified SPX must publish their
 changes. A permissive license would let a host take the protocol closed and
-keep the safety fixes to themselves.
+keep the protocol fixes to themselves.

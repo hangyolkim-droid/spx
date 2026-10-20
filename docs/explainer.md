@@ -61,8 +61,8 @@ The venue rule is also load-bearing: **there is no booking integration.** No
 table is held, no API is called, no capacity is contracted. Two people are told
 a named, public, staffed venue and a time. They find each other by the venue and
 the hour. This removes the largest operational cost in the original design —
-paying venues to hold prime-time tables — and keeps the safety property that
-matters: a public place with staff present.
+paying venues to hold prime-time tables — and keeps the one property that
+matters: a public place, with staff present, at a known hour.
 
 ---
 
@@ -139,9 +139,9 @@ Purge is one transaction: profile, specs, availability, pairs, proposals, dates,
 rounds, and pledges all go. What remains is a salted hash, a marker kind, and an
 expiry — no link to who, where, or who they met.
 
-The marker exists because the alternative is worse: a member with a prior safety
-incident returning clean. It is disclosed on the graduation screen in the host's
-own words, rather than advertised as a full deletion that did not happen.
+The marker exists because the alternative is worse: a banned member returning
+clean. It is disclosed on the graduation screen in the host's own words, rather
+than advertised as a full deletion that did not happen.
 
 ---
 
@@ -171,10 +171,10 @@ Code is the easy twenty percent.
    organizer, forty verified people, and a fixed weekly slot beats a global app
    with zero density. The metric to watch is not downloads; it is completed
    meetings per week.
-2. **Safety operations.** A human who answers the phone, a venue list that gets
-   re-walked, a documented escalation path. None of it is code, and a button
-   that promises intervention without staffing it is worse than no button.
-3. **Governance.** Who admits members, who reviews an incident, who can see the
+2. **Trust operations.** A venue list that gets re-walked, an organizer who
+   knows the district, and a written answer for a ban made by mistake. None of
+   it is code.
+3. **Governance.** Who admits members, who decides an appeal, who can see the
    marker, and how that power is removed. Non-profit does not mean
    unaccountable.
 

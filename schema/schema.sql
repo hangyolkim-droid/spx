@@ -1,7 +1,7 @@
 -- SPX — community edition schema (SQLite 3.31+)
 --
 -- Derived from shared/spx_pilot.sql, with the pilot-only columns removed and
--- the safety rules from shared/spx-resolutions.md applied.
+-- the operating rules from shared/spx-resolutions.md applied.
 --
 -- Money does not pass through the platform (R19). A member may pledge an
 -- amount toward the date; the venue charges it on its own terminal or payment
@@ -155,7 +155,7 @@ CREATE TABLE IF NOT EXISTS venue_rounds (
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS retained_markers (
     marker_hash TEXT PRIMARY KEY,
-    kind        TEXT NOT NULL CHECK (kind IN ('verified','safety','banned')),
+    kind        TEXT NOT NULL CHECK (kind IN ('verified','banned')),
     created_at  TEXT NOT NULL,
     expires_at  TEXT NOT NULL
 );
