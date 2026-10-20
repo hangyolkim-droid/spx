@@ -1,0 +1,14 @@
+[project]
+name = "spx"
+version = "0.1.0"
+description = "SPX — a no-chat, meeting-first dating protocol"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+# Deliberately empty. The core is stdlib-only so it runs anywhere, including
+# on the pilot machine, with no supply chain.
+dev = []
+
+[tool.setuptools]
+packages = ["spx"]
